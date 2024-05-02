@@ -3,6 +3,4 @@ __pycache__/
 .pytest_cache/
 .vscode/
 wandb/
-checkpoints/
-checkpoints_CAE/
-checkpoints_onlyD/
+checkpoints*/ 

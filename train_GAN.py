@@ -1,4 +1,4 @@
-# %%
+# %% This script is to train a GAN with generator not using reconstruction loss, just trying to fool discriminator.
 import os
 
 import torch

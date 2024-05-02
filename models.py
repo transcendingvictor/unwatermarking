@@ -1,5 +1,5 @@
+# %%
 # Where the VAE, the GAN, and the Diffussion Model are defined.
-
 import numpy
 import torch
 import torch.nn as nn
@@ -94,3 +94,79 @@ class Discriminator(nn.Module):
         return int(torch.prod(torch.tensor(output.shape[1:])).item())
 
 
+class DoubleConv(nn.Module):
+    """(convolution => [BN] => ReLU) * 2"""
+
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        super().__init__()
+        if not mid_channels:
+            mid_channels = out_channels
+        self.double_conv = nn.Sequential(
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(mid_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        return self.double_conv(x)
+
+
+class UNet(nn.Module):
+    def __init__(self, n_channels=3):
+        super(UNet, self).__init__()
+        self.n_channels = n_channels
+
+        self.inc = DoubleConv(n_channels, 64)
+        self.down1 = DoubleConv(64, 128)
+        self.down2 = DoubleConv(128, 256)
+        self.down3 = DoubleConv(256, 512)
+        self.up1 = DoubleConv(
+            768, 256
+        )  # Input channels are combined channels of upsampled output and skip connection
+        self.up2 = DoubleConv(384, 128)
+        self.up3 = DoubleConv(192, 64)
+        self.outc = nn.Conv2d(64, n_channels, kernel_size=1)
+
+
+class UNet(nn.Module):
+    def __init__(self, n_channels=3):
+        super(UNet, self).__init__()
+        self.inc = DoubleConv(n_channels, 64)
+        self.down1 = DoubleConv(64, 128)
+        self.down2 = DoubleConv(128, 256)
+        self.down3 = DoubleConv(256, 512)
+        self.up1 = DoubleConv(768, 256)  # Adjusted channel sizes for concatenation
+        self.up2 = DoubleConv(384, 128)
+        self.up3 = DoubleConv(192, 64)
+        self.outc = nn.Conv2d(64, n_channels, kernel_size=1)
+
+    def forward(self, x):
+        x1 = self.inc(x)
+        x2 = F.max_pool2d(x1, 2)
+        x3 = self.down1(x2)
+        x4 = F.max_pool2d(x3, 2)
+        x5 = self.down2(x4)
+        x6 = F.max_pool2d(x5, 2)
+        x7 = self.down3(x6)
+
+        # Ensure dimensions match for skip connections
+        x = F.interpolate(x7, size=x5.size()[2:], mode="bilinear", align_corners=True)
+        x = torch.cat([x, x5], dim=1)
+        x = self.up1(x)
+
+        x = F.interpolate(x, size=x3.size()[2:], mode="bilinear", align_corners=True)
+        x = torch.cat([x, x3], dim=1)
+        x = self.up2(x)
+
+        x = F.interpolate(x, size=x1.size()[2:], mode="bilinear", align_corners=True)
+        x = torch.cat([x, x1], dim=1)
+        x = self.up3(x)
+
+        logits = self.outc(x)
+        return torch.sigmoid(logits)
+
+
+# %%
