@@ -117,23 +117,6 @@ class DoubleConv(nn.Module):
 class UNet(nn.Module):
     def __init__(self, n_channels=3):
         super(UNet, self).__init__()
-        self.n_channels = n_channels
-
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = DoubleConv(64, 128)
-        self.down2 = DoubleConv(128, 256)
-        self.down3 = DoubleConv(256, 512)
-        self.up1 = DoubleConv(
-            768, 256
-        )  # Input channels are combined channels of upsampled output and skip connection
-        self.up2 = DoubleConv(384, 128)
-        self.up3 = DoubleConv(192, 64)
-        self.outc = nn.Conv2d(64, n_channels, kernel_size=1)
-
-
-class UNet(nn.Module):
-    def __init__(self, n_channels=3):
-        super(UNet, self).__init__()
         self.inc = DoubleConv(n_channels, 64)
         self.down1 = DoubleConv(64, 128)
         self.down2 = DoubleConv(128, 256)
@@ -167,6 +150,46 @@ class UNet(nn.Module):
 
         logits = self.outc(x)
         return torch.sigmoid(logits)
+
+
+class VAE(nn.Module):
+    def __init__(self):
+        super(VAE, self).__init__()
+
+        # Encoder layers
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1)
+        self.conv_mu = nn.Conv2d(
+            256, 128, kernel_size=1
+        )  # Output mu directly from feature maps
+        self.conv_logvar = nn.Conv2d(256, 128, kernel_size=1)  # Output logvar directly
+
+        # Decoder layers
+        self.deconv1 = nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)
+        self.deconv3 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1)
+
+    def reparameterize(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x), inplace=True)
+        x = F.relu(self.conv2(x), inplace=True)
+        x = F.relu(self.conv3(x), inplace=True)
+        mu = self.conv_mu(x)
+        log_var = self.conv_logvar(x)
+        z = self.reparameterize(mu, log_var)
+        z = F.relu(self.deconv1(z), inplace=True)
+        z = F.relu(self.deconv2(z), inplace=True)
+        z = F.relu(self.deconv3(z), inplace=True)
+        z = F.interpolate(
+            z, size=(500, 500), mode="bilinear", align_corners=False
+        )  # Correct size adjustment
+        z = torch.sigmoid(z)  # Normalize to [0,1]
+        return z, mu, log_var
 
 
 # %%

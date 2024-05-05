@@ -19,7 +19,7 @@ def log_images(epoch, model, device, data_loader, num_images=10):
     images_logged = 0
     logged_images = []
     # desired_indices = [3, 93, 182, 272, 363]  # indices of images you want to log
-    desired_indices = [1, 2, 4, 8, 14]
+    desired_indices = [1, 2, 3, 4, 5]
     current_index = 0  # to track the index of the images being processed
 
     with torch.no_grad():
@@ -54,7 +54,7 @@ def log_images_diffusion(
     model.eval()
     images_logged = 0
     logged_images = []
-    # desired_indices = [3, 93, 182, 272, 363]  # indices of images you want to log
+    desired_indices = [3, 93, 182, 272, 363]  # indices of images you want to log
     desired_indices = [1, 2, 4, 8, 14]  # indices of images you want to log
     current_index = 0  # to track the index of the images being processed
 
@@ -64,6 +64,40 @@ def log_images_diffusion(
             outputs = model(watermarked_images)
             for _ in range(num_steps - 1):  # only change wrt the above
                 outputs = model(outputs)
+            # Log pairs of images: input and output
+            for i in range(watermarked_images.size(0)):
+                if current_index in desired_indices:
+                    img_pair = torch.cat(
+                        [watermarked_images[i].unsqueeze(0), outputs[i].unsqueeze(0)],
+                        dim=0,
+                    )
+                    logged_images.append(
+                        wandb.Image(
+                            img_pair, caption=f"Epoch {epoch} Pair {current_index + 1}"
+                        )
+                    )
+                    images_logged += 1
+                    if images_logged >= num_images:
+                        break
+                current_index += 1
+            if images_logged >= num_images:
+                break
+
+    wandb.log({"reconstructions": logged_images})
+
+
+def log_images_vae(epoch, model, device, data_loader, num_images=10):
+    model.eval()
+    images_logged = 0
+    logged_images = []
+    desired_indices = [3, 93, 182, 272, 363]  # indices of images you want to log
+    # desired_indices = [1, 2, 3, 4, 5]
+    current_index = 0  # to track the index of the images being processed
+
+    with torch.no_grad():
+        for watermarked_images, original_images in data_loader:
+            watermarked_images = watermarked_images.to(device)
+            outputs, _, _ = model(watermarked_images)
             # Log pairs of images: input and output
             for i in range(watermarked_images.size(0)):
                 if current_index in desired_indices:
