@@ -1,26 +1,16 @@
-# This script may be splitted in several scripts for each model,
-# althought it would be cool to have all of them in the same script and parse arguments.
-# %%
 import os
+import sys
 
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from tqdm.auto import tqdm
 
+from dataset import CustomDataset
 from logger import Logger, log_images
-
-# pixels should be scaled to be between 0 and 1.
 from models import ConvAutoencoder
 
-# from dataset import CustomDataset
-
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-model = ConvAutoencoder().to(device)
-loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+# sys.path.append(os.path.abspath("../"))
 
 
 def train_autoencoder(
@@ -93,68 +83,41 @@ def train_autoencoder(
             },
             checkpoint_filepath,
         )
-
-        # print(
-        #     f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss/len(train_loader):.4f}, "
-        #     f"Val Loss: {val_loss/len(val_loader):.4f}"
-        # )
     logger.finish()
 
 
-# %%
 # Load the watermark (6x1min) and the original (6x1min) datasets from HF.
-# if __name__ == "__main__":
-transforms = ToTensor()
-train_dataset = CustomDataset(
-    "transcendingvictor/watermark1_flowers_dataset",
-    "transcendingvictor/original_flowers_dataset",
-    "train",
-    transforms,
-)
-# %%
-val_dataset = CustomDataset(
-    "transcendingvictor/watermark1_flowers_dataset",
-    "transcendingvictor/original_flowers_dataset",
-    "test",
-    transforms,
-)
-# %%
-from dataset import CustomDataset
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    model = ConvAutoencoder().to(device)
+    loss_fn = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-train_loader = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size=16, shuffle=False)
-# %%
-import importlib
+    transforms = ToTensor()
+    train_dataset = CustomDataset(
+        "transcendingvictor/watermark1_flowers_dataset",
+        "transcendingvictor/original_flowers_dataset",
+        "train",
+        transforms,
+    )
 
-import logger  # Make sure this is imported if not already done
+    val_dataset = CustomDataset(
+        "transcendingvictor/watermark1_flowers_dataset",
+        "transcendingvictor/original_flowers_dataset",
+        "test",
+        transforms,
+    )
 
-importlib.reload(logger)
-# %% for a subset of data
-from torch.utils.data import DataLoader, Subset
+    train_loader = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=16, shuffle=False)
 
-from logger import Logger, log_images
-
-# Define the indices for the subsets
-train_indices = range(200)  # First 200 examples for training
-val_indices = range(20)  # First 20 examples for validation
-
-# Create subset datasets
-train_subset = Subset(train_dataset, train_indices)
-val_subset = Subset(val_dataset, val_indices)
-
-# Create data loaders
-train_loader = DataLoader(dataset=train_subset, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_subset, batch_size=16, shuffle=False)
-# %%
-
-train_autoencoder(
-    epochs=40,
-    train_loader=train_loader,
-    val_loader=val_loader,
-    model=model,
-    loss_fn=loss_fn,
-    optimizer=optimizer,
-    device=device,
-)
-
-# %%
+    train_autoencoder(
+        epochs=40,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        model=model,
+        loss_fn=loss_fn,
+        optimizer=optimizer,
+        device=device,
+    )

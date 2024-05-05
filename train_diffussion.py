@@ -50,12 +50,21 @@ def train_diffusion_model(
         0.9, 0.0, num_steps
     )  # Target t values include the clean state
 
-    for epoch in tqdm(range(epochs), desc="Training the diffusion model"):
+    for epoch in tqdm(
+        range(epochs),
+        desc="Training the diffusion model",
+        dynamic_ncols=True,
+        ascii=True,
+    ):
         model.train()
         running_loss = 0.0
 
         for watermarked_images, original_images in tqdm(
-            train_loader, desc=f"Epoch {epoch + 1}", leave=False
+            train_loader,
+            desc=f"Epoch {epoch + 1}",
+            leave=False,
+            dynamic_ncols=True,
+            ascii=True,
         ):
             watermarked_images = watermarked_images.to(device)
             original_images = original_images.to(device)
@@ -90,7 +99,11 @@ def train_diffusion_model(
 
         with torch.no_grad():
             for watermarked_images, original_images in tqdm(
-                val_loader, desc=f"Validation: Epoch {epoch + 1}", leave=False
+                val_loader,
+                desc=f"Validation: Epoch {epoch + 1}",
+                leave=False,
+                dynamic_ncols=True,
+                ascii=True,
             ):
                 watermarked_images = watermarked_images.to(device)
                 original_images = original_images.to(device)
@@ -171,30 +184,30 @@ val_dataset = CustomDataset(
 )
 # %%
 
-train_loader = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size=16, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size=6, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size=6, shuffle=False)
 # %% to reload modules
-import importlib
+# import importlib
 
-import models
+# import models
 
-# Make sure this is imported if not already done
+# # Make sure this is imported if not already done
 
-importlib.reload(models)
+# importlib.reload(models)
 # %% for a subset of data
-from torch.utils.data import DataLoader, Subset
+# from torch.utils.data import DataLoader, Subset
 
-# Define the indices for the subsets
-train_indices = range(64)  # First 200 examples for training
-val_indices = range(16)  # First 20 examples for validation
+# # Define the indices for the subsets
+# train_indices = range(64)  # First 200 examples for training
+# val_indices = range(16)  # First 20 examples for validation
 
-# Create subset datasets
-train_subset = Subset(train_dataset, train_indices)
-val_subset = Subset(val_dataset, val_indices)
+# # Create subset datasets
+# train_subset = Subset(train_dataset, train_indices)
+# val_subset = Subset(val_dataset, val_indices)
 
-# Create data loaders for real and synthetic images
-train_loader = DataLoader(dataset=train_subset, batch_size=4, shuffle=True)
-val_loader = DataLoader(dataset=val_subset, batch_size=4, shuffle=False)
+# # Create data loaders for real and synthetic images
+# train_loader = DataLoader(dataset=train_subset, batch_size=4, shuffle=True)
+# val_loader = DataLoader(dataset=val_subset, batch_size=4, shuffle=False)
 # load the generator and instantiate the discriminator
 # %%
 from models import ConvAutoencoder, Discriminator
@@ -209,7 +222,7 @@ checkpoint = torch.load("special_checkpoints/checkpoint_GAN2_epoch10.pth")
 # %%
 
 train_diffusion_model(
-    epochs=5,
+    epochs=15,
     train_loader=train_loader,
     model=model,
     loss_fn=loss_fn,

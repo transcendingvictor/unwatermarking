@@ -1,4 +1,3 @@
-# %%
 import os
 
 import torch
@@ -6,19 +5,9 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from tqdm.auto import tqdm
 
+from dataset import CustomDataset
 from logger import Logger, log_images_vae
-
-# pixels should be scaled to be between 0 and 1.
 from models import VAE
-
-# from dataset import CustomDataset
-
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-model = VAE().to(device)
-loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
 
 # Loss components
@@ -34,6 +23,7 @@ def train_vae(
     loss_fn,
     optimizer,
     device,
+    kl_weight=0,
     experiment_name="vae_kl_experiment",
     checkpoint_path="checkpoints_vae_kl",
 ):
@@ -57,7 +47,7 @@ def train_vae(
             # Forward pass
             reconstructed_images, mu, log_var = model(watermarked_images)
             rec_loss = loss_fn(reconstructed_images, original_images)
-            kl_loss = 1e-6 * kl_divergence(mu, log_var)
+            kl_loss = kl_weight * kl_divergence(mu, log_var)
             loss = rec_loss + kl_loss  # Total loss
 
             # Backward and optimize
@@ -123,71 +113,42 @@ def train_vae(
     logger.finish()
 
 
-# %%
 # Load the watermark (6x1min) and the original (6x1min) datasets from HF.
-# if __name__ == "__main__":
-from dataset import CustomDataset
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    model = VAE().to(device)
+    loss_fn = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-transforms = ToTensor()
-train_dataset = CustomDataset(
-    "transcendingvictor/watermark1_flowers_dataset",
-    "transcendingvictor/original_flowers_dataset",
-    "train",
-    transforms,
-)
-# %%
-val_dataset = CustomDataset(
-    "transcendingvictor/watermark1_flowers_dataset",
-    "transcendingvictor/original_flowers_dataset",
-    "test",
-    transforms,
-)
-# %%
+    transforms = ToTensor()
+    train_dataset = CustomDataset(
+        "transcendingvictor/watermark1_flowers_dataset",
+        "transcendingvictor/original_flowers_dataset",
+        "train",
+        transforms,
+    )
+    val_dataset = CustomDataset(
+        "transcendingvictor/watermark1_flowers_dataset",
+        "transcendingvictor/original_flowers_dataset",
+        "test",
+        transforms,
+    )
 
-train_loader = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size=16, shuffle=False)
-# %%
-import importlib
+    train_loader = DataLoader(dataset=train_dataset, batch_size=16, shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=16, shuffle=False)
 
-import logger  # Make sure this is imported if not already done
-from logger import log_images_vae
+    # Load the checkpoints of the model to train it further
+    # checkpoint = torch.load("checkpoints/checkpoints_vae/checkpoint_VAE_epoch_39.pth")
+    # model.load_state_dict(checkpoint["model_state_dict"])
+    # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-importlib.reload(logger)
-# %% for a subset of data
-from torch.utils.data import DataLoader, Subset
-
-from logger import Logger, log_images
-
-# Define the indices for the subsets
-train_indices = range(200)  # First 200 examples for training
-val_indices = range(20)  # First 20 examples for validation
-
-# Create subset datasets
-train_subset = Subset(train_dataset, train_indices)
-val_subset = Subset(val_dataset, val_indices)
-
-# Create data loaders
-train_loader = DataLoader(dataset=train_subset, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_subset, batch_size=16, shuffle=False)
-# %%
-checkpoint = torch.load("checkpoints_vae/checkpoint_VAE_epoch_39.pth")
-
-model = VAE().to(device)
-model.load_state_dict(checkpoint["model_state_dict"])
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-
-# %%
-
-
-train_vae(
-    epochs=10,
-    train_loader=train_loader,
-    val_loader=val_loader,
-    model=model,
-    loss_fn=loss_fn,
-    optimizer=optimizer,
-    device=device,
-)
-
-# %%
+    train_vae(
+        epochs=10,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        model=model,
+        loss_fn=loss_fn,
+        optimizer=optimizer,
+        device=device,
+    )
