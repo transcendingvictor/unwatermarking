@@ -3,4 +3,5 @@ __pycache__/
 .pytest_cache/
 .vscode/
 wandb/
-checkpoints*/ 
+checkpoints/checkpoints*
+checkpoints/(not*
