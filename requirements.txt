@@ -1,3 +1,7 @@
-datasets
-torch==2.2.2+cu121
-torchvision==0.17.2+cu118
+torch>=1.10.0  # Specify a version if you need compatibility
+torchvision>=0.11.0  # Match the version that works well with your PyTorch version
+tqdm>=4.62.0
+piq>=0.6.0  # Confirm the version based on your use of the metric functions
+matplotlib>=3.4.0
+Pillow>=8.3.0  # Use the version that suits your needs, especially if you use features from newer versions
+datasets>=1.18.0  # This is for the Hugging Face's datasets library
