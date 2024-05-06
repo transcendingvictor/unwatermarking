@@ -10,3 +10,5 @@ The **dataset** is fetched directly from HuggingFace. Loading it for the first t
 Watermarked: https://huggingface.co/datasets/transcendingvictor/watermark1_flowers_dataset
 
 Original: https://huggingface.co/datasets/transcendingvictor/original_flowers_dataset
+
+Just the important checkpoints (i.e. the ones used in the inference.ipynb notebook) are shared. The checkpoints from the runs are available upon request.
