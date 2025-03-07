@@ -1,3 +1,6 @@
+![image](https://github.com/user-attachments/assets/44526ac4-0a96-48e1-b24f-bd5c47a7d0e9)
+
+
 # Unwatermarking
 Project intended to train GenAI image models on removing watermarks from images.
 
